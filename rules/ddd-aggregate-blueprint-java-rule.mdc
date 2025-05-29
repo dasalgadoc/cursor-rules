@@ -1,0 +1,198 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+DDD Aggregate Generator from Blueprint
+Descripción
+Esta regla trabaja en sinergia con la regla de estructura DDD para generar automáticamente Aggregates completos basados en el Aggregate Design Blueprint. Genera todo el código necesario siguiendo patrones DDD y arquitectura hexagonal.
+
+Formato del Aggregate Design Blueprint
+* Name: [Nombre del aggregate]
+* Description: [Descripción breve]
+* Context: [Contexto/Bounded Context]
+* Properties: [Lista de propiedades con tipos opcionales]
+* Enforced Invariants: [Lista de invariantes]
+* Corrective Policies: [Políticas correctivas]
+* Domain Events: [Lista de eventos de dominio]
+* Ways to access: [Formas de acceso/consultas]
+Protocolo de Ejecución
+1. Análisis del Blueprint
+Identificar el contexto y nombre del aggregate
+Extraer propiedades, eventos, invariantes y consultas
+Detectar la estructura del proyecto Java existente
+2. Generación de Estructura Base
+Usar la regla de estructura DDD para crear los paquetes base si no existen
+Crear el módulo del aggregate en formato kebab-case plural
+3. Creación de Capa de Dominio
+Dentro de {contexto}/{aggregate-plural}/domain/:
+
+Aggregate Principal
+java
+// {AggregateName}.java
+package {paquete.base}.{contexto}.{aggregate}.domain;
+
+import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
+
+public class {AggregateName} {
+    private final UUID id;
+    // Properties from blueprint
+    private final List<DomainEvent> domainEvents;
+    
+    // Constructor, getters, business methods
+    // Invariant validations
+    // Event emission methods
+}
+Eventos de Dominio
+java
+// {EventName}.java per cada evento
+package {paquete.base}.{contexto}.{aggregate}.domain;
+
+public class {EventName} extends DomainEvent {
+    // Propiedades mutadas del evento
+}
+Errores de Dominio
+java
+// {InvariantName}Error.java per cada invariante
+package {paquete.base}.{contexto}.{aggregate}.domain;
+
+public class {InvariantName}Error extends DomainError {
+    public {InvariantName}Error(String message) {
+        super(message);
+    }
+}
+Repository Interface
+java
+// {AggregateName}Repository.java
+package {paquete.base}.{contexto}.{aggregate}.domain;
+
+import java.util.UUID;
+import java.util.Optional;
+
+public interface {AggregateName}Repository {
+    void save({AggregateName} aggregate);
+    Optional<{AggregateName}> findById(UUID id);
+    // Métodos adicionales basados en "Ways to access"
+}
+4. Creación de Capa de Aplicación
+Dentro de {contexto}/{aggregate-plural}/application/:
+
+Use Cases por cada evento y consulta
+java
+// {AggregateName}{Action}.java
+package {paquete.base}.{contexto}.{aggregate}.application.{action};
+
+@Service
+public class {AggregateName}{Action} {
+    private final {AggregateName}Repository repository;
+    
+    public {AggregateName}{Action}({AggregateName}Repository repository) {
+        this.repository = repository;
+    }
+    
+    public void execute({ActionCommand} command) {
+        // Lógica del use case
+    }
+}
+5. Creación de Capa de Infraestructura
+Dentro de {contexto}/{aggregate-plural}/infrastructure/:
+
+Repository Implementation
+java
+// Jpa{AggregateName}Repository.java
+package {paquete.base}.{contexto}.{aggregate}.infrastructure;
+
+@Repository
+public class Jpa{AggregateName}Repository implements {AggregateName}Repository {
+    
+    @Override
+    public void save({AggregateName} aggregate) {
+        // Implementación JPA
+    }
+    
+    @Override
+    public Optional<{AggregateName}> findById(UUID id) {
+        // Implementación JPA
+    }
+}
+6. Creación de Tests
+Estructura de tests siguiendo TDD:
+
+Object Mothers
+java
+// {AggregateName}Mother.java
+package {paquete.base}.{contexto}.{aggregate}.domain;
+
+public class {AggregateName}Mother {
+    public static {AggregateName} random() {
+        // Factory method para tests
+    }
+    
+    public static {AggregateName} with{Property}({PropertyType} {property}) {
+        // Factory methods específicos
+    }
+}
+Use Case Tests
+java
+// {AggregateName}{Action}Test.java
+package {paquete.base}.{contexto}.{aggregate}.application.{action};
+
+class {AggregateName}{Action}Test {
+    @Test
+    void should_{action}_{aggregate}_when_{condition}() {
+        // Test implementation
+    }
+}
+Ejemplo de Uso
+Entrada:
+
+"Usa el proyecto de la carpeta banking para generar el aggregate basado en este blueprint:
+
+* Name: Naive Bank Account
+* Description: An aggregate modelling a personal bank account
+* Context: Banking  
+* Properties: Id (UUID), Balance, Currency, Status, Transactions
+* Enforced Invariants: Overdraft of max £500, No credits or debits if frozen
+* Corrective Policies: Bounce transaction to fraudulent account
+* Domain Events: Opened, Closed, Frozen, Unfrozen, Credited
+* Ways to access: search by id, search by balance"
+Estructura Generada:
+
+banking/src/main/java/com/dsalgado/banking/
+└── naive-bank-accounts/
+    ├── domain/
+    │   ├── NaiveBankAccount.java
+    │   ├── AccountOpened.java
+    │   ├── AccountClosed.java
+    │   ├── AccountFrozen.java
+    │   ├── AccountUnfrozen.java
+    │   ├── AccountCredited.java
+    │   ├── OverdraftLimitExceededError.java
+    │   ├── FrozenAccountOperationError.java
+    │   └── NaiveBankAccountRepository.java
+    ├── application/
+    │   ├── open/
+    │   │   └── NaiveBankAccountOpener.java
+    │   ├── close/
+    │   │   └── NaiveBankAccountCloser.java
+    │   ├── freeze/
+    │   │   └── NaiveBankAccountFreezer.java
+    │   ├── unfreeze/
+    │   │   └── NaiveBankAccountUnfreezer.java
+    │   ├── credit/
+    │   │   └── NaiveBankAccountCreditor.java
+    │   ├── search-by-id/
+    │   │   └── NaiveBankAccountByIdSearcher.java
+    │   └── search-by-balance/
+    │       └── NaiveBankAccountByBalanceSearcher.java
+    └── infrastructure/
+        └── JpaNaiveBankAccountRepository.java
+Consideraciones Técnicas
+Integración: Funciona con la regla de estructura DDD base
+Convenciones: Sigue naming conventions de Java y DDD
+Testing: Genera estructura completa de tests con TDD
+Flexibilidad: Se adapta a cualquier blueprint válido
+Patrones: Implementa Repository, Aggregate, Domain Events
+Framework: Compatible con Spring Boot y JPA/Hibernate

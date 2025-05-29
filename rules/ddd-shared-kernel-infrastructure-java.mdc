@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🏭 REGLA 4: Infrastructure Layer
+Trigger: "generar shared kernel infrastructure java"
+Genera la capa de infraestructura en shared.infrastructure:
+
+# UUID Generation
+```java
+// JavaUuidGenerator.java
+package {paquete.base}.shared.infrastructure;
+
+import {paquete.base}.shared.domain.UuidGenerator;
+import org.springframework.stereotype.Service;
+import java.util.UUID;
+
+@Service
+public final class JavaUuidGenerator implements UuidGenerator {
+    @Override
+    public String generate() {
+        return UUID.randomUUID().toString();
+    }
+}
+```
+
+# Event Publishing
+```java
+// SpringApplicationEventBus.java
+package {paquete.base}.shared.infrastructure.bus.event;
+
+import {paquete.base}.shared.domain.bus.event.DomainEvent;
+import {paquete.base}.shared.domain.bus.event.EventBus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public final class SpringApplicationEventBus implements EventBus {
+    private final ApplicationEventPublisher publisher;
+
+    public SpringApplicationEventBus(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
+
+    @Override
+    public void publish(final List<DomainEvent> events) {
+        events.forEach(this::publish);
+    }
+
+    private void publish(final DomainEvent event) {
+        this.publisher.publishEvent(event);
+    }
+}
+```

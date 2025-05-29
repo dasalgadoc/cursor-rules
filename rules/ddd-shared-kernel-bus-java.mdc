@@ -1,0 +1,191 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🚌 REGLA 3: Bus Pattern (CQRS)
+Trigger: "generar shared kernel bus java"
+Genera todos los buses CQRS en shared.domain.bus:
+
+```java
+// CommandBus.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface CommandBus {
+    void dispatch(Command command) throws CommandHandlerExecutionError;
+}
+```
+
+```java
+// Command.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface Command { }
+```
+
+```java
+// CommandHandler.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface CommandHandler<T extends Command> {
+    void handle(T command);
+}
+```
+
+```java
+// CommandHandlerExecutionError.java
+package {paquete.base}.shared.domain.bus.command;
+
+public final class CommandHandlerExecutionError extends Exception {
+    public CommandHandlerExecutionError(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
+```java
+// CommandNotRegisteredError.java
+
+package {paquete.base}.shared.domain.bus.command;
+
+public final class CommandNotRegisteredError extends Exception {
+    public CommandNotRegisteredError(Class<? extends Command> command) {
+        super(String.format("The command <%s> hasn't a command handler associated", command.toString()));
+    }
+}
+```
+
+```java
+// QueryBus.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface QueryBus {
+    <R> R ask(Query query) throws QueryHandlerExecutionError;
+}
+```
+
+```java
+// Query.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface Query { }
+```
+
+```java
+// QueryHandler.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface QueryHandler<Q extends Query, R> {
+    R handle(Q query);
+}
+```
+
+```java
+// QueryHandlerExecutionError.java
+package {paquete.base}.shared.domain.bus.query;
+
+public final class QueryHandlerExecutionError extends Exception {
+    public QueryHandlerExecutionError(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
+```java
+// QueryNotRegisteredError.java
+
+package {paquete.base}.shared.domain.bus.query;
+
+public final class QueryNotRegisteredError extends Exception {
+    public QueryNotRegisteredError(Class<? extends Query> query) {
+        super(String.format("The query <%s> hasn't a query handler associated", query.toString()));
+    }
+}
+```
+
+```java
+// Response.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface Response { }
+```
+
+```java
+// EventBus.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.util.List;
+
+public interface EventBus {
+    void publish(List<DomainEvent> events);
+}
+```
+
+```java
+// DomainEvent.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.UUID;
+
+public abstract class DomainEvent {
+    private String aggregateId;
+    private String eventId;
+    private String occurredOn;
+
+    public DomainEvent(String aggregateId) {
+        this.aggregateId = aggregateId;
+        this.eventId     = UUID.randomUUID().toString();
+        this.occurredOn  = Utils.dateToString(LocalDateTime.now());
+    }
+
+    public DomainEvent(String aggregateId, String eventId, String occurredOn) {
+        this.aggregateId = aggregateId;
+        this.eventId     = eventId;
+        this.occurredOn  = occurredOn;
+    }
+
+    protected DomainEvent() {
+    }
+
+    public abstract String eventName();
+
+    public abstract HashMap<String, Serializable> toPrimitives();
+
+    public abstract DomainEvent fromPrimitives(
+        String aggregateId,
+        HashMap<String, Serializable> body,
+        String eventId,
+        String occurredOn
+    );
+
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    public String eventId() {
+        return eventId;
+    }
+
+    public String occurredOn() {
+        return occurredOn;
+    }
+}
+```
+
+```java
+// DomainEventSubscriber.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Inherited
+public @interface DomainEventSubscriber {
+    Class<? extends DomainEvent>[] value();
+}
+
+```

@@ -1,0 +1,829 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# DDD Shared Kernel Generator - Cursor Rules
+
+## Descripción
+Esta regla genera automáticamente un Shared Kernel completo con todas las abstracciones fundamentales de DDD dentro del paquete `shared` de un proyecto Java. Basado en las mejores prácticas de CodelyTV pero genericizado para cualquier dominio.
+
+## Instrucciones
+Cuando el usuario solicite generar el Shared Kernel, crear toda la estructura de abstracciones DDD dentro del paquete `shared` detectado automáticamente en el proyecto.
+
+## Estructura del Shared Kernel
+
+### Domain Layer (`shared/domain/`)
+
+#### Base Classes y Interfaces
+```java
+// AggregateRoot.java
+package {paquete.base}.shared.domain;
+
+import {paquete.base}.shared.domain.bus.event.DomainEvent;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+
+public abstract class AggregateRoot {
+    private List<DomainEvent> domainEvents = new ArrayList<>();
+
+    final public List<DomainEvent> pullDomainEvents() {
+        List<DomainEvent> events = domainEvents;
+
+        domainEvents = Collections.emptyList();
+
+        return events;
+    }
+
+    final protected void record(DomainEvent event) {
+        domainEvents.add(event);
+    }
+}
+```
+
+
+```java
+// DomainError.java
+package {paquete.base}.shared.domain;
+
+public abstract class DomainError extends RuntimeException {
+    private final String errorCode;
+    private final String errorMessage;
+
+    public DomainError(String errorCode, String errorMessage) {
+        super(errorMessage);
+
+        this.errorCode    = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
+    public String errorCode() {
+        return errorCode;
+    }
+
+    public String errorMessage() {
+        return errorMessage;
+    }
+}
+```
+
+#### Identification
+```java
+// Identifier.java
+package {paquete.base}.shared.domain;
+
+import java.io.Serializable;
+import java.util.Objects;
+import java.util.UUID;
+
+public abstract class Identifier extends Serializable {
+    final protected String value;
+
+    public Identifier(String value) {
+        ensureValidUuid(value);
+
+        this.value = value;
+    }
+
+    protected Identifier() {
+        this.value = null;
+    }
+
+    public String value() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Identifier that = (Identifier) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    private void ensureValidUuid(String value) throws IllegalArgumentException {
+        UUID.fromString(value);
+    }
+}
+```
+
+```java
+// UuidGenerator.java
+package {paquete.base}.shared.domain;
+
+public interface UuidGenerator {
+    String generate();
+}
+```
+
+#### Common Value Objects
+```java
+// StringValueObject.java
+package {paquete.base}.shared.domain;
+
+import java.util.Objects;
+
+public abstract class StringValueObject {
+    private String value;
+
+    public StringValueObject(String value) {
+        this.value = value;
+    }
+
+    public String value() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return this.value();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof StringValueObject)) {
+            return false;
+        }
+        StringValueObject that = (StringValueObject) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+}
+```
+
+```java
+// IntValueObject.java
+package {paquete.base}.shared.domain;
+
+import java.util.Objects;
+
+public abstract class IntValueObject {
+    private Integer value;
+
+    public IntValueObject(Integer value) {
+        this.value = value;
+    }
+
+    public Integer value() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IntValueObject that = (IntValueObject) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+}
+```
+
+```java
+// Monitoring.java
+package {paquete.base}.shared.domain;
+
+import java.util.HashMap;
+
+public interface Monitoring {
+    void incrementCounter(int times);
+
+    void incrementGauge(int times);
+    void decrementGauge(int times);
+    void setGauge(int value);
+
+    void observeHistogram(int value, HashMap<String, String> labels);
+}
+```
+
+#### Criteria Pattern
+```java
+// Criteria.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.Optional;
+
+public final class Criteria {
+    private final Filters           filters;
+    private final Order             order;
+    private final Optional<Integer> limit;
+    private final Optional<Integer> offset;
+
+    public Criteria(Filters filters, Order order, Optional<Integer> limit, Optional<Integer> offset) {
+        this.filters = filters;
+        this.order   = order;
+        this.limit   = limit;
+        this.offset  = offset;
+    }
+
+    public Criteria(Filters filters, Order order) {
+        this.filters = filters;
+        this.order   = order;
+        this.limit   = Optional.empty();
+        this.offset  = Optional.empty();
+    }
+
+    public Filters filters() {
+        return filters;
+    }
+
+    public Order order() {
+        return order;
+    }
+
+    public Optional<Integer> limit() {
+        return limit;
+    }
+
+    public Optional<Integer> offset() {
+        return offset;
+    }
+
+    public boolean hasFilters() {
+        return filters.filters().size() > 0;
+    }
+
+    public String serialize() {
+        return String.format(
+            "%s~~%s~~%s~~%s",
+            filters.serialize(),
+            order.serialize(),
+            offset.orElse(0),
+            limit.orElse(0)
+        );
+    }
+}
+```
+
+```java
+// Filters.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public final class Filters {
+    private final List<Filter> filters;
+
+    public Filters(List<Filter> filters) {
+        this.filters = filters;
+    }
+
+    public static Filters fromValues(List<HashMap<String, String>> filters) {
+        return new Filters(filters.stream().map(Filter::fromValues).collect(Collectors.toList()));
+    }
+
+    public static Filters none() {
+        return new Filters(Collections.emptyList());
+    }
+
+    public List<Filter> filters() {
+        return filters;
+    }
+
+    public String serialize() {
+        return filters.stream().map(Filter::serialize).collect(Collectors.joining("^"));
+    }
+}
+```
+
+
+```java
+// Filter.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.HashMap;
+
+public final class Filter {
+    private final FilterField    field;
+    private final FilterOperator operator;
+    private final FilterValue    value;
+
+    public Filter(FilterField field, FilterOperator operator, FilterValue value) {
+        this.field    = field;
+        this.operator = operator;
+        this.value    = value;
+    }
+
+    public static Filter create(String field, String operator, String value) {
+        return new Filter(
+            new FilterField(field),
+            FilterOperator.fromValue(operator.toUpperCase()),
+            new FilterValue(value)
+        );
+    }
+
+    public static Filter fromValues(HashMap<String, String> values) {
+        return new Filter(
+            new FilterField(values.get("field")),
+            FilterOperator.fromValue(values.get("operator")),
+            new FilterValue(values.get("value"))
+        );
+    }
+
+    public FilterField field() {
+        return field;
+    }
+
+    public FilterOperator operator() {
+        return operator;
+    }
+
+    public FilterValue value() {
+        return value;
+    }
+
+    public String serialize() {
+        return String.format("%s.%s.%s", field.value(), operator.value(), value.value());
+    }
+}
+```
+
+```java
+// FilterField.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class FilterField extends StringValueObject {
+    public FilterField(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// FilterOperator.java
+package {paquete.base}.shared.domain.criteria;
+
+public enum FilterOperator {
+    EQUAL("="),
+    NOT_EQUAL("!="),
+    GT(">"),
+    LT("<"),
+    CONTAINS("CONTAINS"),
+    NOT_CONTAINS("NOT_CONTAINS");
+
+    private final String operator;
+
+    FilterOperator(String operator) {
+        this.operator = operator;
+    }
+
+    public static FilterOperator fromValue(String value) {
+        switch (value) {
+            case "=": return FilterOperator.EQUAL;
+            case "!=": return FilterOperator.NOT_EQUAL;
+            case ">": return FilterOperator.GT;
+            case "<": return FilterOperator.LT;
+            case "CONTAINS": return FilterOperator.CONTAINS;
+            case "NOT_CONTAINS": return FilterOperator.NOT_CONTAINS;
+            default: return null;
+        }
+    }
+
+    public boolean isPositive() {
+        return this != NOT_EQUAL && this != NOT_CONTAINS;
+    }
+
+    public String value() {
+        return operator;
+    }
+}
+```
+
+```java
+// FilterValue.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class FilterValue extends StringValueObject {
+    public FilterValue(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// Order.java
+package {paquete.base}.shared.domain.criteria;
+
+public final class Order {
+    private final OrderBy   orderBy;
+    private final OrderType orderType;
+
+    public Order(OrderBy orderBy, OrderType orderType) {
+        this.orderBy   = orderBy;
+        this.orderType = orderType;
+    }
+
+    public static Order fromValues(Optional<String> orderBy, Optional<String> orderType) {
+        return orderBy.map(order -> new Order(new OrderBy(order), OrderType.valueOf(orderType.orElse("ASC"))))
+                      .orElseGet(Order::none);
+    }
+
+    public static Order none() {
+        return new Order(new OrderBy(""), OrderType.NONE);
+    }
+
+    public static Order desc(String orderBy) {
+        return new Order(new OrderBy(orderBy), OrderType.DESC);
+    }
+
+    public static Order asc(String orderBy) {
+        return new Order(new OrderBy(orderBy), OrderType.ASC);
+    }
+
+    public OrderBy orderBy() {
+        return orderBy;
+    }
+
+    public OrderType orderType() {
+        return orderType;
+    }
+
+    public boolean hasOrder() {
+        return !orderType.isNone();
+    }
+
+    public String serialize() {
+        return String.format("%s.%s", orderBy.value(), orderType.value());
+    }
+}
+```
+
+```java
+// OrderBy.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class OrderBy extends StringValueObject {
+    public OrderBy(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// OrderType.java
+package {paquete.base}.shared.domain.criteria;
+
+public enum OrderType {
+    ASC, DESC;
+
+    public boolean isAsc() { return this == ASC; }
+    public boolean isDesc() { return this == DESC; }
+}
+```
+
+#### Bus Interfaces
+```java
+// CommandBus.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface CommandBus {
+    void dispatch(Command command) throws CommandHandlerExecutionError;
+}
+```
+
+```java
+// Command.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface Command { }
+```
+
+```java
+// CommandHandler.java
+package {paquete.base}.shared.domain.bus.command;
+
+public interface CommandHandler<T extends Command> {
+    void handle(T command);
+}
+```
+
+```java
+// CommandHandlerExecutionError.java
+package {paquete.base}.shared.domain.bus.command;
+
+public final class CommandHandlerExecutionError extends Exception {
+    public CommandHandlerExecutionError(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
+```java
+// CommandNotRegisteredError.java
+
+public final class CommandNotRegisteredError extends Exception {
+    public CommandNotRegisteredError(Class<? extends Command> command) {
+        super(String.format("The command <%s> hasn't a command handler associated", command.toString()));
+    }
+}
+```
+
+```java
+// QueryBus.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface QueryBus {
+    <R> R ask(Query query) throws QueryHandlerExecutionError;
+}
+```
+
+```java
+// Query.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface Query { }
+```
+
+```java
+// QueryHandler.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface QueryHandler<Q extends Query, R> {
+    R handle(Q query);
+}
+```
+
+```java
+// QueryHandlerExecutionError.java
+package {paquete.base}.shared.domain.bus.query;
+
+public final class QueryHandlerExecutionError extends Exception {
+    public QueryHandlerExecutionError(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
+```java
+// QueryNotRegisteredError.java
+
+package {paquete.base}.shared.domain.bus.query;
+
+public final class QueryNotRegisteredError extends Exception {
+    public QueryNotRegisteredError(Class<? extends Query> query) {
+        super(String.format("The query <%s> hasn't a query handler associated", query.toString()));
+    }
+}
+
+```
+
+```java
+// Response.java
+package {paquete.base}.shared.domain.bus.query;
+
+public interface Response { }
+```
+
+```java
+// EventBus.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.util.List;
+
+public interface EventBus {
+    void publish(List<DomainEvent> events);
+}
+```
+
+```java
+// DomainEvent.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.UUID;
+
+public abstract class DomainEvent {
+    private String aggregateId;
+    private String eventId;
+    private String occurredOn;
+
+    public DomainEvent(String aggregateId) {
+        this.aggregateId = aggregateId;
+        this.eventId     = UUID.randomUUID().toString();
+        this.occurredOn  = Utils.dateToString(LocalDateTime.now());
+    }
+
+    public DomainEvent(String aggregateId, String eventId, String occurredOn) {
+        this.aggregateId = aggregateId;
+        this.eventId     = eventId;
+        this.occurredOn  = occurredOn;
+    }
+
+    protected DomainEvent() {
+    }
+
+    public abstract String eventName();
+
+    public abstract HashMap<String, Serializable> toPrimitives();
+
+    public abstract DomainEvent fromPrimitives(
+        String aggregateId,
+        HashMap<String, Serializable> body,
+        String eventId,
+        String occurredOn
+    );
+
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    public String eventId() {
+        return eventId;
+    }
+
+    public String occurredOn() {
+        return occurredOn;
+    }
+}
+```
+
+```java
+// DomainEventSubscriber.java
+package {paquete.base}.shared.domain.bus.event;
+
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Inherited
+public @interface DomainEventSubscriber {
+    Class<? extends DomainEvent>[] value();
+}
+
+```
+
+### Infrastructure Layer (`shared/infrastructure/`)
+
+#### UUID Generation
+```java
+// JavaUuidGenerator.java
+package {paquete.base}.shared.infrastructure;
+
+import {paquete.base}.shared.domain.UuidGenerator;
+import org.springframework.stereotype.Service;
+import java.util.UUID;
+
+@Service
+public final class JavaUuidGenerator implements UuidGenerator {
+    @Override
+    public String generate() {
+        return UUID.randomUUID().toString();
+    }
+}
+```
+
+#### Event Publishing
+```java
+// SpringApplicationEventBus.java
+package {paquete.base}.shared.infrastructure.bus.event;
+
+import {paquete.base}.shared.domain.bus.event.DomainEvent;
+import {paquete.base}.shared.domain.bus.event.EventBus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public final class SpringApplicationEventBus implements EventBus {
+    private final ApplicationEventPublisher publisher;
+
+    public SpringApplicationEventBus(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
+
+    @Override
+    public void publish(final List<DomainEvent> events) {
+        events.forEach(this::publish);
+    }
+
+    private void publish(final DomainEvent event) {
+        this.publisher.publishEvent(event);
+    }
+}
+```
+
+## Características Principales
+
+### 1. **Immutabilidad y Encapsulación**
+- Todos los Value Objects son inmutables
+- Uso de métodos `final` para prevenir sobrescritura
+- Acceso controlado a través de métodos públicos
+
+### 2. **Patrón Criteria Robusto**
+- Implementación completa del patrón Criteria para consultas
+- Filtros, ordenamiento, paginación
+- Type-safe y extensible
+
+### 3. **Event-Driven Architecture**
+- Domain Events con serialización a primitivos
+- Event Bus para publicación
+- Integración con Spring Events
+
+### 4. **CQRS Support**
+- Command/Query separation
+- Bus pattern implementation
+- Handler interfaces
+
+### 5. **Value Objects Genéricos**
+- StringValueObject, IntValueObject, EnumValueObject
+- Reutilizables en cualquier dominio
+- Validación automática
+
+## Ejemplo de Uso
+
+**Entrada:**
+```
+"Genera el Shared Kernel completo para el proyecto"
+```
+
+**Estructura Generada:**
+```
+{proyecto}/src/main/java/{paquete}/shared/
+├── domain/
+│   ├── AggregateRoot.java
+│   ├── DomainError.java
+│   ├── Identifier.java
+│   ├── UuidGenerator.java
+│   ├── StringValueObject.java
+│   ├── IntValueObject.java
+│   ├── Monitoring.java
+│   ├── criteria/
+│   │   ├── Criteria.java
+│   │   ├── Filters.java
+│   │   ├── Filter.java
+│   │   ├── FilterField.java
+│   │   ├── FilterOperator.java
+│   │   ├── FilterValue.java
+│   │   ├── Order.java
+│   │   ├── OrderBy.java
+│   │   └── OrderType.java
+│   └── bus/
+│       ├── command/
+│       │   ├── CommandBus.java
+│       │   ├── Command.java
+│       │   ├── CommandHandler.java
+│       │   ├── CommandNotRegisteredError.java
+│       │   └── CommandHandlerExecutionError.java
+│       ├── query/
+│       │   ├── QueryBus.java
+│       │   ├── Query.java
+│       │   ├── QueryHandler.java
+│       │   ├── QueryHandlerExecutionError.java
+│       │   ├── QueryNotRegisteredError.java
+│       │   └── Response.java
+│       └── event/
+│           ├── EventBus.java
+│           ├── DomainEventSubscriber.java
+│           └── DomainEvent.java
+└── infrastructure/
+    ├── JavaUuidGenerator.java
+    └── bus/
+        └── event/
+            └── SpringApplicationEventBus.java
+```
+
+## Consideraciones
+
+- **Basado en CodelyTV**: Incorpora las mejores prácticas del repositorio de referencia https://github.dev/CodelyTV/java-ddd-example
+- **Genericizado**: Sin referencias específicas a dominios particulares  
+- **Production-Ready**: Optimizado para uso en producción
+- **Spring Integration**: Compatible con Spring Boot y sus convenciones
+- **Type Safety**: Fuertemente tipado para prevenir errores
+- **Extensible**: Fácil de extender con nuevos Value Objects y patrones
+- **Testing Friendly**: Diseñado para facilitar testing unitario

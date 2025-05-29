@@ -1,0 +1,84 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+DDD Shared Kernel - Reglas Modulares para Cursor
+# 📋 Instrucciones de Uso 
+Estas reglas están divididas en módulos para evitar limitaciones de contexto. Ejecuta los comandos en orden:
+
+generar shared kernel base java
+generar shared kernel criteria java
+generar shared kernel bus java
+generar shared kernel infrastructure java
+
+# 🎯 Comandos de Uso
+
+generar shared kernel base - Genera clases base (AggregateRoot, ValueObject, etc.)
+generar shared kernel criteria - Genera patrón Criteria completo
+generar shared kernel bus - Genera buses CQRS y DomainEvent
+generar shared kernel infrastructure - Genera implementaciones Spring
+
+
+# Ejemplo de Uso
+
+**Entrada:**
+```
+"Genera el Shared Kernel completo para el proyecto"
+```
+
+**Estructura Generada:**
+```
+{proyecto}/src/main/java/{paquete}/shared/
+├── domain/
+│   ├── AggregateRoot.java
+│   ├── DomainError.java
+│   ├── Identifier.java
+│   ├── UuidGenerator.java
+│   ├── StringValueObject.java
+│   ├── IntValueObject.java
+│   ├── Monitoring.java
+│   ├── criteria/
+│   │   ├── Criteria.java
+│   │   ├── Filters.java
+│   │   ├── Filter.java
+│   │   ├── FilterField.java
+│   │   ├── FilterOperator.java
+│   │   ├── FilterValue.java
+│   │   ├── Order.java
+│   │   ├── OrderBy.java
+│   │   └── OrderType.java
+│   └── bus/
+│       ├── command/
+│       │   ├── CommandBus.java
+│       │   ├── Command.java
+│       │   ├── CommandHandler.java
+│       │   ├── CommandNotRegisteredError.java
+│       │   └── CommandHandlerExecutionError.java
+│       ├── query/
+│       │   ├── QueryBus.java
+│       │   ├── Query.java
+│       │   ├── QueryHandler.java
+│       │   ├── QueryHandlerExecutionError.java
+│       │   ├── QueryNotRegisteredError.java
+│       │   └── Response.java
+│       └── event/
+│           ├── EventBus.java
+│           ├── DomainEventSubscriber.java
+│           └── DomainEvent.java
+└── infrastructure/
+    ├── JavaUuidGenerator.java
+    └── bus/
+        └── event/
+            └── SpringApplicationEventBus.java
+```
+
+# Consideraciones
+
+- **Basado en CodelyTV**: Incorpora las mejores prácticas del repositorio de referencia https://github.dev/CodelyTV/java-ddd-example
+- **Genericizado**: Sin referencias específicas a dominios particulares  
+- **Production-Ready**: Optimizado para uso en producción
+- **Spring Integration**: Compatible con Spring Boot y sus convenciones
+- **Type Safety**: Fuertemente tipado para prevenir errores
+- **Extensible**: Fácil de extender con nuevos Value Objects y patrones
+- **Testing Friendly**: Diseñado para facilitar testing unitario

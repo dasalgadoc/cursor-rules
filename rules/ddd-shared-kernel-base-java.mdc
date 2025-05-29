@@ -1,0 +1,211 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🏗️ REGLA 1: Base del Shared Kernel
+Trigger: "generar shared kernel base java"
+Genera las clases base del Shared Kernel en el paquete shared.domain:
+
+```java
+// AggregateRoot.java
+package {paquete.base}.shared.domain;
+
+import {paquete.base}.shared.domain.bus.event.DomainEvent;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+
+public abstract class AggregateRoot {
+    private List<DomainEvent> domainEvents = new ArrayList<>();
+
+    final public List<DomainEvent> pullDomainEvents() {
+        List<DomainEvent> events = domainEvents;
+
+        domainEvents = Collections.emptyList();
+
+        return events;
+    }
+
+    final protected void record(DomainEvent event) {
+        domainEvents.add(event);
+    }
+}
+```
+
+
+```java
+// DomainError.java
+package {paquete.base}.shared.domain;
+
+public abstract class DomainError extends RuntimeException {
+    private final String errorCode;
+    private final String errorMessage;
+
+    public DomainError(String errorCode, String errorMessage) {
+        super(errorMessage);
+
+        this.errorCode    = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
+    public String errorCode() {
+        return errorCode;
+    }
+
+    public String errorMessage() {
+        return errorMessage;
+    }
+}
+```
+
+```java
+// Identifier.java
+package {paquete.base}.shared.domain;
+
+import java.io.Serializable;
+import java.util.Objects;
+import java.util.UUID;
+
+public abstract class Identifier extends Serializable {
+    final protected String value;
+
+    public Identifier(String value) {
+        ensureValidUuid(value);
+
+        this.value = value;
+    }
+
+    protected Identifier() {
+        this.value = null;
+    }
+
+    public String value() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Identifier that = (Identifier) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    private void ensureValidUuid(String value) throws IllegalArgumentException {
+        UUID.fromString(value);
+    }
+}
+```
+
+```java
+// UuidGenerator.java
+package {paquete.base}.shared.domain;
+
+public interface UuidGenerator {
+    String generate();
+}
+```
+
+```java
+// StringValueObject.java
+package {paquete.base}.shared.domain;
+
+import java.util.Objects;
+
+public abstract class StringValueObject {
+    private String value;
+
+    public StringValueObject(String value) {
+        this.value = value;
+    }
+
+    public String value() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return this.value();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof StringValueObject)) {
+            return false;
+        }
+        StringValueObject that = (StringValueObject) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+}
+```
+
+```java
+// IntValueObject.java
+package {paquete.base}.shared.domain;
+
+import java.util.Objects;
+
+public abstract class IntValueObject {
+    private Integer value;
+
+    public IntValueObject(Integer value) {
+        this.value = value;
+    }
+
+    public Integer value() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IntValueObject that = (IntValueObject) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+}
+```
+
+```java
+// Monitoring.java
+package {paquete.base}.shared.domain;
+
+import java.util.HashMap;
+
+public interface Monitoring {
+    void incrementCounter(int times);
+
+    void incrementGauge(int times);
+    void decrementGauge(int times);
+    void setGauge(int value);
+
+    void observeHistogram(int value, HashMap<String, String> labels);
+}
+```

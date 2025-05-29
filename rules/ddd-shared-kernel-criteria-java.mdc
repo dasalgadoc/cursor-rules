@@ -1,0 +1,291 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🔍 REGLA 2: Patrón Criteria
+Trigger: "generar shared kernel criteria java"
+Genera todo el patrón Criteria en shared.domain.criteria:
+
+```java
+// Criteria.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.Optional;
+
+public final class Criteria {
+    private final Filters           filters;
+    private final Order             order;
+    private final Optional<Integer> limit;
+    private final Optional<Integer> offset;
+
+    public Criteria(Filters filters, Order order, Optional<Integer> limit, Optional<Integer> offset) {
+        this.filters = filters;
+        this.order   = order;
+        this.limit   = limit;
+        this.offset  = offset;
+    }
+
+    public Criteria(Filters filters, Order order) {
+        this.filters = filters;
+        this.order   = order;
+        this.limit   = Optional.empty();
+        this.offset  = Optional.empty();
+    }
+
+    public Filters filters() {
+        return filters;
+    }
+
+    public Order order() {
+        return order;
+    }
+
+    public Optional<Integer> limit() {
+        return limit;
+    }
+
+    public Optional<Integer> offset() {
+        return offset;
+    }
+
+    public boolean hasFilters() {
+        return filters.filters().size() > 0;
+    }
+
+    public String serialize() {
+        return String.format(
+            "%s~~%s~~%s~~%s",
+            filters.serialize(),
+            order.serialize(),
+            offset.orElse(0),
+            limit.orElse(0)
+        );
+    }
+}
+```
+
+```java
+// Filters.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public final class Filters {
+    private final List<Filter> filters;
+
+    public Filters(List<Filter> filters) {
+        this.filters = filters;
+    }
+
+    public static Filters fromValues(List<HashMap<String, String>> filters) {
+        return new Filters(filters.stream().map(Filter::fromValues).collect(Collectors.toList()));
+    }
+
+    public static Filters none() {
+        return new Filters(Collections.emptyList());
+    }
+
+    public List<Filter> filters() {
+        return filters;
+    }
+
+    public String serialize() {
+        return filters.stream().map(Filter::serialize).collect(Collectors.joining("^"));
+    }
+}
+```
+
+
+```java
+// Filter.java
+package {paquete.base}.shared.domain.criteria;
+
+import java.util.HashMap;
+
+public final class Filter {
+    private final FilterField    field;
+    private final FilterOperator operator;
+    private final FilterValue    value;
+
+    public Filter(FilterField field, FilterOperator operator, FilterValue value) {
+        this.field    = field;
+        this.operator = operator;
+        this.value    = value;
+    }
+
+    public static Filter create(String field, String operator, String value) {
+        return new Filter(
+            new FilterField(field),
+            FilterOperator.fromValue(operator.toUpperCase()),
+            new FilterValue(value)
+        );
+    }
+
+    public static Filter fromValues(HashMap<String, String> values) {
+        return new Filter(
+            new FilterField(values.get("field")),
+            FilterOperator.fromValue(values.get("operator")),
+            new FilterValue(values.get("value"))
+        );
+    }
+
+    public FilterField field() {
+        return field;
+    }
+
+    public FilterOperator operator() {
+        return operator;
+    }
+
+    public FilterValue value() {
+        return value;
+    }
+
+    public String serialize() {
+        return String.format("%s.%s.%s", field.value(), operator.value(), value.value());
+    }
+}
+```
+
+```java
+// FilterField.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class FilterField extends StringValueObject {
+    public FilterField(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// FilterOperator.java
+package {paquete.base}.shared.domain.criteria;
+
+public enum FilterOperator {
+    EQUAL("="),
+    NOT_EQUAL("!="),
+    GT(">"),
+    LT("<"),
+    CONTAINS("CONTAINS"),
+    NOT_CONTAINS("NOT_CONTAINS");
+
+    private final String operator;
+
+    FilterOperator(String operator) {
+        this.operator = operator;
+    }
+
+    public static FilterOperator fromValue(String value) {
+        switch (value) {
+            case "=": return FilterOperator.EQUAL;
+            case "!=": return FilterOperator.NOT_EQUAL;
+            case ">": return FilterOperator.GT;
+            case "<": return FilterOperator.LT;
+            case "CONTAINS": return FilterOperator.CONTAINS;
+            case "NOT_CONTAINS": return FilterOperator.NOT_CONTAINS;
+            default: return null;
+        }
+    }
+
+    public boolean isPositive() {
+        return this != NOT_EQUAL && this != NOT_CONTAINS;
+    }
+
+    public String value() {
+        return operator;
+    }
+}
+```
+
+```java
+// FilterValue.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class FilterValue extends StringValueObject {
+    public FilterValue(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// Order.java
+package {paquete.base}.shared.domain.criteria;
+
+public final class Order {
+    private final OrderBy   orderBy;
+    private final OrderType orderType;
+
+    public Order(OrderBy orderBy, OrderType orderType) {
+        this.orderBy   = orderBy;
+        this.orderType = orderType;
+    }
+
+    public static Order fromValues(Optional<String> orderBy, Optional<String> orderType) {
+        return orderBy.map(order -> new Order(new OrderBy(order), OrderType.valueOf(orderType.orElse("ASC"))))
+                      .orElseGet(Order::none);
+    }
+
+    public static Order none() {
+        return new Order(new OrderBy(""), OrderType.NONE);
+    }
+
+    public static Order desc(String orderBy) {
+        return new Order(new OrderBy(orderBy), OrderType.DESC);
+    }
+
+    public static Order asc(String orderBy) {
+        return new Order(new OrderBy(orderBy), OrderType.ASC);
+    }
+
+    public OrderBy orderBy() {
+        return orderBy;
+    }
+
+    public OrderType orderType() {
+        return orderType;
+    }
+
+    public boolean hasOrder() {
+        return !orderType.isNone();
+    }
+
+    public String serialize() {
+        return String.format("%s.%s", orderBy.value(), orderType.value());
+    }
+}
+```
+
+```java
+// OrderBy.java
+package {paquete.base}.shared.domain.criteria;
+
+import {paquete.base}.shared.domain.StringValueObject;
+
+public final class OrderBy extends StringValueObject {
+    public OrderBy(String value) {
+        super(value);
+    }
+}
+```
+
+```java
+// OrderType.java
+package {paquete.base}.shared.domain.criteria;
+
+public enum OrderType {
+    ASC, DESC;
+
+    public boolean isAsc() { return this == ASC; }
+    public boolean isDesc() { return this == DESC; }
+}
+```

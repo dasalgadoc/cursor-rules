@@ -1,0 +1,120 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Java DDD Bounded Context Generator Rule
+Descripción
+Esta regla crea automáticamente la estructura de paquetes para un bounded context de Domain Driven Design (DDD) en Java, organizando dominios con arquitectura hexagonal.
+Instrucciones
+Cuando el usuario indique una carpeta de proyecto Java existente y proporcione una lista de dominios:
+
+Analizar el proyecto existente: Detectar automáticamente la estructura del paquete base examinando el directorio src/main/java/
+Crear la estructura DDD: Dentro del paquete base detectado, crear los dominios especificados
+
+Estructura Base
+Para cada dominio listado, crear:
+src/main/java/{paquete.base}/
+├── {dominio1}/
+│   ├── infrastructure/
+│   │   └── .gitkeep
+│   ├── application/
+│   │   └── .gitkeep
+│   └── domain/
+│       └── .gitkeep
+├── {dominio2}/
+│   ├── infrastructure/
+│   │   └── .gitkeep
+│   ├── application/
+│   │   └── .gitkeep
+│   └── domain/
+│       └── .gitkeep
+└── shared/
+    ├── infrastructure/
+    │   ├── controller/
+    │   │   └── HealthCheckController.java
+    │   └── .gitkeep
+    ├── application/
+    │   └── .gitkeep
+    └── domain/
+        └── .gitkeep
+Reglas de Implementación
+
+Detectar paquete base: Examinar la carpeta del proyecto en src/main/java/ para identificar automáticamente la estructura de paquetes existente
+Crear paquetes por dominio: Para cada dominio en la lista, crear tres sub-paquetes:
+
+infrastructure/ - Capa de infraestructura
+application/ - Capa de aplicación
+domain/ - Capa de dominio
+
+
+Paquete shared: Crear un paquete shared con la misma estructura de tres capas
+Archivos .gitkeep: Colocar un archivo .gitkeep vacío en cada paquete creado
+HealthCheckController: En shared/infrastructure/controller/ crear el controlador con el package correcto detectado automáticamente
+
+javapackage {paquete.base}.shared.infrastructure.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HealthCheckController {
+    
+    @GetMapping("/ping")
+    public String ping() {
+        return "pong";
+    }
+}
+Ejemplos de Uso
+Ejemplo 1 - Proyecto existente:
+"Usa el proyecto de la carpeta banking para crear estructura DDD con dominios: cuenta, transaccion, usuario"
+Proceso automático:
+
+Cursor examina banking/src/main/java/
+Detecta estructura existente (ej: com.dsalgado.banking)
+Crea dominios dentro de esa estructura
+
+Ejemplo 2 - Proyecto MercadoLibre:
+"Usa el proyecto de la carpeta agenda-service para crear estructura DDD con dominios: evento, notificacion, usuario"
+Resultado esperado (detectando automáticamente):
+agenda-service/src/main/java/com/mercadolibre/agenda/
+├── evento/
+│   ├── infrastructure/
+│   │   └── .gitkeep
+│   ├── application/
+│   │   └── .gitkeep
+│   └── domain/
+│       └── .gitkeep
+├── notificacion/
+│   ├── infrastructure/
+│   │   └── .gitkeep
+│   ├── application/
+│   │   └── .gitkeep
+│   └── domain/
+│       └── .gitkeep
+├── usuario/
+│   ├── infrastructure/
+│   │   └── .gitkeep
+│   ├── application/
+│   │   └── .gitkeep
+│   └── domain/
+│       └── .gitkeep
+└── shared/
+    ├── infrastructure/
+    │   ├── controller/
+    │   │   └── HealthCheckController.java
+    │   └── .gitkeep
+    ├── application/
+    │   └── .gitkeep
+    └── domain/
+        └── .gitkeep
+Ejemplo 3 - Proyecto simple:
+"Usa el proyecto de la carpeta ecommerce para crear estructura DDD con dominios: producto, pedido"
+Consideraciones
+
+Detección automática: Cursor debe examinar src/main/java/ para detectar la estructura de paquetes existente
+Preservar estructura: No modificar archivos existentes, solo agregar la nueva estructura DDD
+Nomenclatura: Usar nombres de paquetes en minúsculas siguiendo convenciones Java
+Compatibilidad: Funciona con proyectos Maven y Gradle
+Spring Boot: El HealthCheckController usa anotaciones estándar de Spring Boot
+Flexibilidad: Se adapta a cualquier estructura de paquetes existente
