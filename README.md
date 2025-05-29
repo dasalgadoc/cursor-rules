@@ -46,6 +46,10 @@ Each rule is designed to be used with specific commands. For example:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## 🙏 Acknowledgments
+
+This project's rules and patterns are inspired by and built upon the excellent work and teachings from [Codely](https://codely.com/) and [CodelyTV](https://github.com/CodelyTV/). Their commitment to software craftsmanship and domain-driven design principles has been instrumental in shaping these rules.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
